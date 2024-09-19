@@ -1,13 +1,13 @@
 {
   "$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
   "vcs": {
-    "enabled": true,
-    "defaultBranch": "main",
+    "enabled": false,
+    "defaultBranch": "master",
     "clientKind": "git",
     "useIgnoreFile": true
   },
   "formatter": {
-    "enabled": true,
+    "enabled": false,
     "indentStyle": "space"
   },
   "javascript": {
@@ -21,7 +21,10 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "suspicious": {
+        "noExplicitAny": "off"
+      }
     }
   },
   "organizeImports": {

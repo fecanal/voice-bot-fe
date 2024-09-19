@@ -1,96 +1,100 @@
-import { Helmet } from '@modern-js/runtime/head';
+import {encodeAudioOnlyRequest} from "@/routes/utils";
+import {Button} from "@arco-design/web-react";
+import React, {useCallback, useEffect, useRef, useState} from "react";
+import RecordRTC, {StereoAudioRecorder} from "recordrtc";
 import './index.css';
 
-const Index = () => (
-  <div className="container-box">
-    <Helmet>
-      <link
-        rel="icon"
-        type="image/x-icon"
-        href="https://lf3-static.bytednsdoc.com/obj/eden-cn/uhbfnupenuhf/favicon.ico"
-      />
-    </Helmet>
-    <main>
-      <div className="title">
-        Welcome to
-        <img
-          className="logo"
-          src="https://lf3-static.bytednsdoc.com/obj/eden-cn/zq-uylkvT/ljhwZthlaukjlkulzlp/modern-js-logo.svg"
-          alt="Modern.js Logo"
-        />
-        <p className="name">Modern.js</p>
-      </div>
-      <p className="description">
-        Get started by editing <code className="code">src/routes/page.tsx</code>
-      </p>
-      <div className="grid">
-        <a
-          href="https://modernjs.dev/guides/get-started/introduction.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="card"
-        >
-          <h2>
-            Guide
-            <img
-              className="arrow-right"
-              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/zq-uylkvT/ljhwZthlaukjlkulzlp/arrow-right.svg"
-              alt="Guide"
-            />
-          </h2>
-          <p>Follow the guides to use all features of Modern.js.</p>
-        </a>
-        <a
-          href="https://modernjs.dev/tutorials/foundations/introduction.html"
-          target="_blank"
-          className="card"
-          rel="noreferrer"
-        >
-          <h2>
-            Tutorials
-            <img
-              className="arrow-right"
-              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/zq-uylkvT/ljhwZthlaukjlkulzlp/arrow-right.svg"
-              alt="Tutorials"
-            />
-          </h2>
-          <p>Learn to use Modern.js to create your first application.</p>
-        </a>
-        <a
-          href="https://modernjs.dev/configure/app/usage.html"
-          target="_blank"
-          className="card"
-          rel="noreferrer"
-        >
-          <h2>
-            Config
-            <img
-              className="arrow-right"
-              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/zq-uylkvT/ljhwZthlaukjlkulzlp/arrow-right.svg"
-              alt="Config"
-            />
-          </h2>
-          <p>Find all configuration options provided by Modern.js.</p>
-        </a>
-        <a
-          href="https://github.com/web-infra-dev/modern.js"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="card"
-        >
-          <h2>
-            Github
-            <img
-              className="arrow-right"
-              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/zq-uylkvT/ljhwZthlaukjlkulzlp/arrow-right.svg"
-              alt="Github"
-            />
-          </h2>
-          <p>View the source code of Github, feel free to contribute.</p>
-        </a>
-      </div>
-    </main>
-  </div>
-);
+const Index = () => {
+  const recorderRef = useRef<RecordRTC>();
+  const mediaStream = useRef<MediaStream | null>(null);
+  const [ASRResult,setASRResult] = useState<string>('');
+  const webSocketRef = useRef<WebSocket>();
+
+  const getUserMedia = useCallback(async () => {
+    return new Promise(((resolve,reject) => {
+      if (navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+          mediaStream.current=stream;
+          resolve(stream);
+        });
+      } else {
+        reject(null);
+      }
+    }))
+  }, []);
+
+  const connectWebsocket = useCallback(async () => {
+    return new Promise((resolve => {
+      const socket = new WebSocket('ws://localhost:8888/bot');
+      socket.onopen = () => {
+        console.log('WebSocket connected');
+        webSocketRef.current = socket;
+        resolve(socket);
+      }
+      socket.onmessage = (event) => {
+        console.log('Received message:', event.data);
+      };
+
+      socket.onclose = () => {
+        console.log('WebSocket closed');
+      };
+
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+      };
+
+    }))
+  }, []);
+
+  const startRecord = useCallback(async() => {
+    try{
+      await connectWebsocket()
+      await getUserMedia()
+      if(!mediaStream.current){
+        return
+      }
+      recorderRef.current = new RecordRTC(mediaStream.current, {
+        type: 'audio',
+        recorderType: StereoAudioRecorder,
+        mimeType: 'audio/wav',
+        numberOfAudioChannels: 1,
+        desiredSampRate: 16000,
+        disableLogs: true,
+        timeSlice: 100,
+        async ondataavailable(recordResult) {
+          const socket = webSocketRef.current;
+          if (!socket) {
+            return;
+          }
+          const pcm = recordResult.slice(44);
+          const data = encodeAudioOnlyRequest(pcm);
+          if (socket.readyState === socket.OPEN) {
+            /*socket.send(
+                genBotWSData({
+                    event: 'UserAudio',
+                    data,
+                }),
+            );*/
+            socket.send(data);
+          }
+        },
+      })
+      console.log(recorderRef)
+      recorderRef.current.startRecording();
+    }catch (e){
+      console.log(e)
+    }
+
+  }, [getUserMedia,connectWebsocket]);
+
+  return (<div className='root'>
+    <Button
+      onClick={()=>{
+        startRecord();
+      }}>开始对话
+    </Button>
+    <p>语音识别结果: {ASRResult}</p>
+  </div>)
+};
 
 export default Index;
