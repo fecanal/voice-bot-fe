@@ -1,4 +1,9 @@
-import { encodeAudioOnlyRequest, genBotWSData } from '@/routes/utils';
+import {
+  encodeAudioOnlyRequest,
+  genBotWSData,
+  decodeWebSocketMessage,
+  handleMessage,
+} from '@/routes/utils';
 import { Button } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import RecordRTC, { StereoAudioRecorder } from 'recordrtc';
@@ -25,14 +30,21 @@ const Index = () => {
 
   const connectWebsocket = useCallback(async () => {
     return new Promise(resolve => {
-      const socket = new WebSocket('ws://localhost:8888/bot');
+      const socket = new WebSocket('ws://localhost:8888/api/voice/chat');
       socket.onopen = () => {
         console.log('WebSocket connected');
         webSocketRef.current = socket;
         resolve(socket);
       };
-      socket.onmessage = event => {
-        console.log('Received message:', event.data);
+      socket.onmessage = e => {
+        try {
+          e.data.arrayBuffer().then((buffer: ArrayBuffer) => {
+            const json = decodeWebSocketMessage(buffer);
+            handleMessage?.(json);
+          });
+        } catch (error) {
+          console.error(error);
+        }
       };
 
       socket.onclose = () => {
