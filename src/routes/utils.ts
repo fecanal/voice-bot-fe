@@ -122,4 +122,30 @@ export const decodeWebSocketMessage = (resp: ArrayBuffer) => {
 export const handleMessage = (msg: any) => {
   const { event, payload, data } = msg;
   console.log('handleMessage', event, payload, data);
+  if (!event) {
+    return;
+  }
+  switch (event) {
+    case 'BotReady':
+      console.log('BotReady', payload);
+      break;
+    case 'BotUpdateConfig':
+      console.log('BotUpdateConfig', payload);
+      break;
+    case 'SentenceRecognized':
+      console.log('SentenceRecognized', payload);
+      break;
+    case 'TTSSentenceStart':
+      console.log('TTSSentenceStart', payload);
+      break;
+    case 'TTSDone':
+      console.log('TTSDone', payload);
+      break;
+    case 'BotError':
+      console.log('BotError', payload);
+      break;
+    default:
+      console.log('Unknown event', event, payload, data);
+      break;
+  }
 };

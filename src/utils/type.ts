@@ -12,3 +12,12 @@ export type WebRequest = {
   payload?: any;
   data?: Blob;
 };
+
+export enum EventType {
+  BotReady = 'BotReady',
+  BotUpdateConfig = 'BotUpdateConfig',
+  SentenceRecognized = 'SentenceRecognized',
+  TTSSentenceStart = 'TTSSentenceStart',
+  TTSDone = 'TTSDone',
+  BotError = 'BotError',
+}
