@@ -1,40 +1,5 @@
-export const CONST = {
-  PROTOCOL_VERSION: 0b0001,
-  DEFAULT_HEADER_SIZE: 0b0001,
-
-  // Header size
-  PROTOCOL_VERSION_BITS: 4,
-  HEADER_BITS: 4,
-  MESSAGE_TYPE_BITS: 4,
-  MESSAGE_TYPE_SPECIFIC_FLAGS_BITS: 4,
-  MESSAGE_SERIALIZATION_BITS: 4,
-  MESSAGE_COMPRESSION_BITS: 4,
-  RESERVED_BITS: 8,
-
-  // Message Type:
-  CLIENT_FULL_REQUEST: 0b0001,
-  CLIENT_AUDIO_ONLY_REQUEST: 0b0010,
-  SERVER_FULL_RESPONSE: 0b1001,
-  SERVER_ACK: 0b1011,
-  SERVER_ERROR_RESPONSE: 0b1111,
-
-  // Message Type Specific Flags
-  NO_SEQUENCE: 0b0000, // no check sequence
-  POS_SEQUENCE: 0b0001,
-  NEG_WITHOUT_SEQUENCE: 0b0010,
-  NEG_WITH_SEQUENCE: 0b0011,
-
-  // Message Serialization
-  NO_SERIALIZATION: 0b0000,
-  JSON: 0b0001,
-  THRIFT: 0b0011,
-  CUSTOM_TYPE: 0b1111,
-
-  // Message Compression
-  NO_COMPRESSION: 0b0000,
-  GZIP: 0b0001,
-  CUSTOM_COMPRESSION: 0b1111,
-};
+import { CONST } from '@/utils/constant';
+import type { IWebSocketResponse, JSONResponse } from '@/utils/type';
 
 export const encodeAudioOnlyRequest = (requestData: Blob) => {
   const audio_only_request_header = generateHeader(
@@ -90,38 +55,33 @@ export const genBotWSData = (req: BotWebRequest) => {
   return new Blob([header, json, data]);
 };
 
-// export const decodeAudioOnlyResponse = (responseData: Blob){
-//   const audio_only_response_header = new DataView(responseData.slice(0, 4));
-//   const audio_only_response_body = responseData.slice(4);
-//   const audio_only_response_payload_size = audio_only_response_header.getUint32(0);
-// }
-
-export const decodeWebSocketMessage = (resp: ArrayBuffer) => {
+export const decodeWebSocketResponse = (
+  resp: ArrayBuffer,
+): IWebSocketResponse => {
   const view = new DataView(resp);
-  const hsize = view.getUint8(0) & 0x0f;
-  // const messageType = view.getUint8(1);
-
-  let body = resp.slice(hsize * 4);
-  const payloadSize = new DataView(body).getUint32(0);
-
-  body = body.slice(4);
-  const dataSize = new DataView(body).getUint32(0);
-
-  // json part
-  const raw = body.slice(4, 4 + payloadSize);
-  const result = JSON.parse(new TextDecoder().decode(raw));
-
-  // buffer part
-  if (dataSize > 0) {
-    result.data = body.slice(4 + payloadSize);
+  const header_size = view.getUint8(0) & 0x0f; // 0~3 bits
+  const messageType = view.getUint8(1) & 0x0f; // 4~7 bits
+  const payload = resp.slice(header_size * CONST.HEADER_BITS);
+  const payloadSize = new DataView(payload).getUint32(0);
+  const payloadBody = payload.slice(CONST.PAYLOAD_LENGTH_BYTES);
+  if (messageType === CONST.SERVER_AUDIO_ONLY_RESPONSE) {
+    return {
+      messageType: CONST.SERVER_AUDIO_ONLY_RESPONSE,
+      payload: payload.slice(
+        CONST.PAYLOAD_LENGTH_BYTES,
+        CONST.PAYLOAD_LENGTH_BYTES + payloadSize,
+      ),
+    };
   }
-
-  return result;
+  return {
+    messageType: CONST.SERVER_FULL_RESPONSE,
+    payload: JSON.parse(new TextDecoder().decode(payloadBody)),
+  };
 };
 
-export const handleMessage = (msg: any) => {
-  const { event, payload, data } = msg;
-  console.log('handleMessage', event, payload, data);
+export const handleJSONMessage = (msg: JSONResponse) => {
+  const { event, payload } = msg;
+  console.log('handleMessage', event, payload);
   if (!event) {
     return;
   }
@@ -145,7 +105,7 @@ export const handleMessage = (msg: any) => {
       console.log('BotError', payload);
       break;
     default:
-      console.log('Unknown event', event, payload, data);
+      console.log('Unknown event', event, payload);
       break;
   }
 };

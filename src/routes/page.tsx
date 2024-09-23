@@ -1,8 +1,8 @@
 import {
   encodeAudioOnlyRequest,
   genBotWSData,
-  decodeWebSocketMessage,
-  handleMessage,
+  decodeWebSocketResponse,
+  handleJSONMessage,
 } from '@/routes/utils';
 import { Button } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -68,10 +68,9 @@ const Index = () => {
           }
         },
       });
-      console.log(recorderRef);
       recorderRef.current.startRecording();
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   }, [getUserMedia, connectWebsocket, voiceBotService]);
 

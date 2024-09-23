@@ -1,6 +1,7 @@
-import { decodeWebSocketMessage, handleMessage } from '@/routes/utils';
+import { decodeWebSocketResponse, handleJSONMessage } from '@/routes/utils';
 import { pack } from '.';
-import type { WebRequest } from './type';
+import type { JSONResponse, WebRequest } from './type';
+import { CONST } from '@/utils/constant';
 
 interface IVoiceBotService {
   ws_url: string;
@@ -8,8 +9,10 @@ interface IVoiceBotService {
 export default class VoiceBotService {
   private ws_url: string;
   private ws?: WebSocket;
+  private audioCtx: AudioContext;
   constructor(props: IVoiceBotService) {
     this.ws_url = props.ws_url;
+    this.audioCtx = new AudioContext();
   }
   public async connect(): Promise<WebSocket> {
     return new Promise((resolve, reject) => {
@@ -35,12 +38,26 @@ export default class VoiceBotService {
   public onMessage(e: MessageEvent<any>) {
     try {
       e.data.arrayBuffer().then((buffer: ArrayBuffer) => {
-        const json = decodeWebSocketMessage(buffer);
-        handleMessage?.(json);
+        const resp = decodeWebSocketResponse(buffer);
+        if (resp.messageType === CONST.SERVER_FULL_RESPONSE) {
+          handleJSONMessage(resp.payload as JSONResponse);
+        }
+        if (resp.messageType === CONST.SERVER_AUDIO_ONLY_RESPONSE) {
+          this.handleAudioOnlyResponse(resp.payload as ArrayBuffer);
+        }
+        // handleMessage?.(json);
       });
     } catch (e) {
       this.onError(e);
     }
+  }
+  private async handleAudioOnlyResponse(data: ArrayBuffer) {
+    const audioBuffer = await this.audioCtx.decodeAudioData(
+      new Uint8Array(data).buffer,
+    );
+    const buffer = this.audioCtx.createBufferSource();
+    buffer.connect(this.audioCtx.destination);
+    buffer.start(0);
   }
   private onError(e: any) {
     console.error(e);

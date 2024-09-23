@@ -21,3 +21,12 @@ export enum EventType {
   TTSDone = 'TTSDone',
   BotError = 'BotError',
 }
+
+export interface IWebSocketResponse {
+  messageType: number;
+  payload: JSONResponse | ArrayBuffer;
+}
+export type JSONResponse = {
+  event: EventType;
+  payload?: Record<string, any>;
+};
