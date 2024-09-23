@@ -9,7 +9,7 @@ export type WebResponse = {
 
 export type WebRequest = {
   event: string;
-  payload?: any;
+  payload?: Record<string, any>;
   data?: Blob;
 };
 
