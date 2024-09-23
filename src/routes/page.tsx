@@ -8,13 +8,14 @@ import { Button } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import RecordRTC, { StereoAudioRecorder } from 'recordrtc';
 import './index.css';
+import VoiceBotService from '@/utils/voice_bot_service';
 
 const Index = () => {
   const recorderRef = useRef<RecordRTC>();
   const mediaStream = useRef<MediaStream | null>(null);
   const [ASRResult, setASRResult] = useState<string>('');
   const webSocketRef = useRef<WebSocket>();
-
+  const [voiceBotService, setVoiceBotService] = useState<VoiceBotService>();
   const getUserMedia = useCallback(async () => {
     return new Promise((resolve, reject) => {
       if (navigator.mediaDevices.getUserMedia) {
@@ -28,38 +29,18 @@ const Index = () => {
     });
   }, []);
 
-  const connectWebsocket = useCallback(async () => {
-    return new Promise(resolve => {
-      const socket = new WebSocket('ws://localhost:8888/api/voice/chat');
-      socket.onopen = () => {
-        console.log('WebSocket connected');
-        webSocketRef.current = socket;
-        resolve(socket);
-      };
-      socket.onmessage = e => {
-        try {
-          e.data.arrayBuffer().then((buffer: ArrayBuffer) => {
-            const json = decodeWebSocketMessage(buffer);
-            handleMessage?.(json);
-          });
-        } catch (error) {
-          console.error(error);
-        }
-      };
-
-      socket.onclose = () => {
-        console.log('WebSocket closed');
-      };
-
-      socket.onerror = error => {
-        console.error('WebSocket error:', error);
-      };
+  const connectWebsocket = useCallback((): Promise<WebSocket> => {
+    const botService = new VoiceBotService({
+      ws_url: 'ws://localhost:8888/api/voice/chat',
     });
+    setVoiceBotService(botService);
+    return botService.connect();
   }, []);
 
   const startRecord = useCallback(async () => {
     try {
-      await connectWebsocket();
+      const socket = await connectWebsocket();
+      webSocketRef.current = socket;
       await getUserMedia();
       if (!mediaStream.current) {
         return;
@@ -74,19 +55,16 @@ const Index = () => {
         timeSlice: 100,
         async ondataavailable(recordResult) {
           const socket = webSocketRef.current;
-          if (!socket) {
+          if (!socket || !voiceBotService) {
             return;
           }
           const pcm = recordResult.slice(44);
           const data = encodeAudioOnlyRequest(pcm);
           if (socket.readyState === socket.OPEN) {
-            socket.send(
-              genBotWSData({
-                event: 'UserAudio',
-                data,
-              }),
-            );
-            // socket.send(data);
+            voiceBotService.sendMessage({
+              event: 'UserAudio',
+              data,
+            });
           }
         },
       });
@@ -95,7 +73,7 @@ const Index = () => {
     } catch (e) {
       console.log(e);
     }
-  }, [getUserMedia, connectWebsocket]);
+  }, [getUserMedia, connectWebsocket, voiceBotService]);
 
   return (
     <div className="root">
