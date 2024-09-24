@@ -15,7 +15,7 @@ const Index = () => {
   const mediaStream = useRef<MediaStream | null>(null);
   const [ASRResult, setASRResult] = useState<string>('');
   const webSocketRef = useRef<WebSocket>();
-  const [voiceBotService, setVoiceBotService] = useState<VoiceBotService>();
+  const voiceBotService = useRef<VoiceBotService>();
   const getUserMedia = useCallback(async () => {
     return new Promise((resolve, reject) => {
       if (navigator.mediaDevices.getUserMedia) {
@@ -33,7 +33,7 @@ const Index = () => {
     const botService = new VoiceBotService({
       ws_url: 'ws://localhost:8888/api/voice/chat',
     });
-    setVoiceBotService(botService);
+    voiceBotService.current = botService;
     return botService.connect();
   }, []);
 
@@ -55,13 +55,14 @@ const Index = () => {
         timeSlice: 100,
         async ondataavailable(recordResult) {
           const socket = webSocketRef.current;
-          if (!socket || !voiceBotService) {
+          const botService = voiceBotService.current;
+          if (!socket || !botService) {
             return;
           }
           const pcm = recordResult.slice(44);
           const data = encodeAudioOnlyRequest(pcm);
           if (socket.readyState === socket.OPEN) {
-            voiceBotService.sendMessage({
+            botService.sendMessage({
               event: 'UserAudio',
               data,
             });
@@ -72,7 +73,7 @@ const Index = () => {
     } catch (e) {
       console.error(e);
     }
-  }, [getUserMedia, connectWebsocket, voiceBotService]);
+  }, [getUserMedia, connectWebsocket]);
 
   return (
     <div className="root">
