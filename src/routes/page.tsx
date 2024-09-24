@@ -31,7 +31,8 @@ const Index = () => {
 
   const connectWebsocket = useCallback((): Promise<WebSocket> => {
     const botService = new VoiceBotService({
-      ws_url: 'ws://localhost:8888/api/voice/chat',
+      // ws_url: 'ws://localhost:8888/api/voice/chat',
+      ws_url: 'ws://10.254.198.22:8888/api/voice/chat',
     });
     voiceBotService.current = botService;
     return botService.connect();

@@ -39,6 +39,7 @@ export default class VoiceBotService {
     try {
       e.data.arrayBuffer().then((buffer: ArrayBuffer) => {
         const resp = decodeWebSocketResponse(buffer);
+        console.log('##resp', resp);
         if (resp.messageType === CONST.SERVER_FULL_RESPONSE) {
           handleJSONMessage(resp.payload as JSONResponse);
         }
@@ -56,6 +57,7 @@ export default class VoiceBotService {
       new Uint8Array(data).buffer,
     );
     const buffer = this.audioCtx.createBufferSource();
+    buffer.buffer = audioBuffer;
     buffer.connect(this.audioCtx.destination);
     buffer.start(0);
   }

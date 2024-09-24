@@ -1,5 +1,6 @@
-import type { WebRequest, WebResponse } from '@/utils/type';
+import { EventType, type WebRequest, type WebResponse } from '@/utils/type';
 import { generateWSHeader } from '@/routes/utils';
+import { CONST } from '@/utils/constant';
 
 export function unpack(resp: ArrayBuffer): WebResponse {
   const view = new DataView(resp);
@@ -19,19 +20,27 @@ export function unpack(resp: ArrayBuffer): WebResponse {
 }
 
 /**
- * web send for 同传
+ * web send ws data
  */
 export function pack(req: WebRequest): Blob {
+  if (req.payload) {
+    const header = generateWSHeader(CONST.CLIENT_FULL_REQUEST);
+    const json = JSON.stringify(req.payload);
+    const encoded = new TextEncoder().encode(json);
+    const byteLength = encoded.length;
+    header.setUint32(4, byteLength, false);
+    return new Blob([header, json]);
+  }
   const header = generateWSHeader();
   const data = req.data || new Blob();
-  req.data = undefined;
+  // req.data = undefined;
 
-  const json = JSON.stringify(req);
-  const encoded = new TextEncoder().encode(json);
-  const byteLength = encoded.length;
+  // const json = JSON.stringify(req);
+  // const encoded = new TextEncoder().encode(json);
+  // const byteLength = encoded.length;
 
-  header.setUint32(4, byteLength, false);
-  header.setUint32(8, data.size, false);
+  // header.setUint32(4, byteLength, false);
+  header.setUint32(4, data.size, false);
 
-  return new Blob([header, json, data]);
+  return new Blob([header, data]);
 }
