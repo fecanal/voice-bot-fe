@@ -5,6 +5,17 @@ export default defineConfig({
   runtime: {
     router: true,
   },
+  html: {
+    disableHtmlFolder: true,
+  },
+  source: {
+    mainEntryName: 'index',
+  },
+  output: {
+    distPath: {
+      html: '/',
+    },
+  },
   plugins: [
     appTools({
       bundler: 'rspack', // Set to 'webpack' to enable webpack
