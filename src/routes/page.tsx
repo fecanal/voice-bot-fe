@@ -79,16 +79,31 @@ const Index = () => {
 
   return (
     <div className="root">
-      <Button
-        onClick={() => {
-          startRecord();
+      <img
+        className={
+          'w-[100px] h-[100px] rounded-full select-none z-20 object-cover box-content absolute'
+        }
+        style={{
+          width: '100%',
+          height: '100%',
+          maxWidth: '150px',
+          maxHeight: '150px',
+          minWidth: '100px',
+          minHeight: '100px',
+          top: '26%',
+          left: '43%',
         }}
-      >
-        开始对话
-      </Button>
-      <p>语音识别结果: {ASRResult}</p>
+        src={
+          'https://ark-auto-2100000825-cn-beijing-default.tos-cn-beijing.volces.com/assistant_image/WrAtF2jBdl.png'
+        }
+        alt="bot avatar"
+      />
       <AwesomeCycleLines
-        className={'absolute left-1/2 top-1/2'}
+        style={{
+          top: '33.7%',
+          left: '49.8%',
+        }}
+        className={'absolute'}
         lineCount={80}
         eachLineProps={i => ({
           style: {
@@ -100,6 +115,21 @@ const Index = () => {
           },
         })}
       />
+      <div
+        style={{
+          left: '47%',
+        }}
+        className={'absolute top-1/2'}
+      >
+        <Button
+          onClick={() => {
+            startRecord();
+          }}
+        >
+          打电话
+        </Button>
+        <p>语音识别结果: {ASRResult}</p>
+      </div>
     </div>
   );
 };
