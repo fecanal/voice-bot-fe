@@ -5,6 +5,7 @@
 .env.local
 .env.*.local
 .history
+.output
 *.log*
 
 node_modules/

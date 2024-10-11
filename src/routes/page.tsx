@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import RecordRTC, { StereoAudioRecorder } from 'recordrtc';
 import './index.css';
 import VoiceBotService from '@/utils/voice_bot_service';
+import { AwesomeCycleLines } from '@/conponents/AwesomeCycleLines';
 
 const Index = () => {
   const recorderRef = useRef<RecordRTC>();
@@ -86,6 +87,19 @@ const Index = () => {
         开始对话
       </Button>
       <p>语音识别结果: {ASRResult}</p>
+      <AwesomeCycleLines
+        className={'absolute left-1/2 top-1/2'}
+        lineCount={80}
+        eachLineProps={i => ({
+          style: {
+            width: 4,
+            borderRadius: 999999,
+            transitionDuration: '100ms',
+            height: 90 * 1 ?? 0,
+            backgroundColor: '#5629EE26',
+          },
+        })}
+      />
     </div>
   );
 };
